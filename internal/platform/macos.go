@@ -12,12 +12,12 @@ func getMacOSExcludes() []string {
 		"./.gnupg/S.*",
 		"./.local/share/nvim",
 		"./.npm",
-		"./go",
 		"./.orbstack",
 		"./.pulumi",
 		"./.terraform.d",
 		"./.vscode/extensions",
 		"./Library/Application Support/Cursor",
+		"./Library/Application Support/FileProvider",
 		"./Library/Application Support/Google",
 		"./Library/Application Support/Slack",
 		"./Library/Application Support/rancher-desktop",
@@ -39,5 +39,6 @@ func getMacOSExcludes() []string {
 		"./OrbStack",
 		"./Pictures",
 		"./Sources/github.com/NixOS/nixpkgs",
+		"./go",
 	}
 }
