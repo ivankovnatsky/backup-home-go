@@ -47,3 +47,11 @@ dist/
 
 go mod tidy # Updates go.mod
 ```
+
+## Reasoning
+
+After trying out to implement all that in rust, I decided to try out go, since
+I thought rclone has a library and is also written in go. But it turns out that
+it's kind of more complex:
+https://github.com/rclone/rclone/issues/361#issuecomment-1611890274, but maybe
+I will try to do it someday next time.
