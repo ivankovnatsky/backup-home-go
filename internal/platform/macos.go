@@ -12,6 +12,7 @@ func getMacOSExcludes() []string {
 		"./.gnupg/S.*",
 		"./.local/share/nvim",
 		"./.npm",
+		"./go",
 		"./.orbstack",
 		"./.pulumi",
 		"./.terraform.d",
