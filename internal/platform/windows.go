@@ -1,0 +1,36 @@
+package platform
+
+func getWindowsExcludes() []string {
+	return []string{
+		"scoop",
+		"AppData\\Local\\AMD",
+		"AppData\\Local\\Microsoft",
+		"AppData\\Local\\Mozilla\\Firefox",
+		"AppData\\Roaming\\Mozilla\\Firefox",
+		"AppData\\Local\\Steam\\htmlcache",
+		"AppData\\Local\\Packages",
+		"AppData\\Local\\Programs\\cursor",
+		"AppData\\Roaming\\Cursor",
+		"AppData\\Local\\Temp",
+		"AppData\\Roaming\\asus_framework",
+		"NTUSER.DAT",
+		"ntuser.dat.LOG*",
+		"AppData\\Local\\Application Data",
+		"AppData\\Local\\History",
+		"AppData\\Local\\ElevatedDiagnostics",
+		"AppData\\Local\\Temporary Internet Files",
+		"Application Data",
+		"Cookies",
+		"Local Settings",
+		"My Documents",
+		"NetHood",
+		"PrintHood",
+		"Recent",
+		"SendTo",
+		"Start Menu",
+		"Templates",
+		"Documents\\My Music",
+		"Documents\\My Pictures",
+		"Documents\\My Videos",
+	}
+}
