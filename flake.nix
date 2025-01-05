@@ -15,6 +15,16 @@
         };
       in
       {
+        packages = {
+          default = pkgs.buildGoModule {
+            pname = "backup-home";
+            version = "0.1.0";
+            src = ./.;
+            
+            vendorHash = null;
+          };
+        };
+
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             go
