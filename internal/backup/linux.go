@@ -1,7 +1,7 @@
 package backup
 
 import (
-	"archive/zip"
+	"archive/tar"
 	"fmt"
 	"io"
 	"os"
@@ -11,24 +11,25 @@ import (
 
 	"backup-home/internal/platform"
 
-	"github.com/klauspost/compress/zstd"
+	"github.com/klauspost/pgzip"
 )
 
-func createWindowsArchive(source, backupPath string, compressionLevel int, verbose bool) error {
+func createLinuxArchive(source, backupPath string, compressionLevel int, verbose bool) error {
 	outFile, err := os.Create(backupPath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer outFile.Close()
 
-	// Create a new zip archive
-	zipWriter := zip.NewWriter(outFile)
-	defer zipWriter.Close()
+	// Use parallel gzip compression with number of CPU cores
+	gzipWriter, err := pgzip.NewWriterLevel(outFile, compressionLevel)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip writer: %w", err)
+	}
+	defer gzipWriter.Close()
 
-	// Configure compression
-	zipWriter.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
-		return zstd.NewWriter(out, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(compressionLevel)))
-	})
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
 
 	startTime := time.Now()
 	lastUpdate := time.Now()
@@ -52,7 +53,7 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 			return nil
 		}
 
-		// Normalize path for pattern matching and Windows paths
+		// Normalize path for pattern matching
 		normalizedPath := "./" + filepath.ToSlash(relPath)
 
 		// Check exclude patterns
@@ -94,17 +95,26 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 			sugar.Debugf("Including: %s", normalizedPath)
 		}
 
-		// Create zip header
-		header, err := zip.FileInfoHeader(info)
+		// Handle symlinks specially on Linux
+		var header *tar.Header
+		if info.Mode()&os.ModeSymlink != 0 {
+			link, err := os.Readlink(path)
+			if err != nil {
+				sugar.Debugf("Failed to read symlink %s: %v", path, err)
+				return nil
+			}
+			header, err = tar.FileInfoHeader(info, link)
+		} else {
+			header, err = tar.FileInfoHeader(info, info.Name())
+		}
+
 		if err != nil {
-			return fmt.Errorf("failed to create zip header: %w", err)
+			return fmt.Errorf("failed to create tar header: %w", err)
 		}
 		header.Name = relPath
-		header.Method = zip.Deflate
 
-		writer, err := zipWriter.CreateHeader(header)
-		if err != nil {
-			return fmt.Errorf("failed to create zip entry: %w", err)
+		if err := tarWriter.WriteHeader(header); err != nil {
+			return fmt.Errorf("failed to write tar header: %w", err)
 		}
 
 		if info.Mode().IsRegular() {
@@ -115,7 +125,7 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 			}
 			defer file.Close()
 
-			if _, err := io.Copy(writer, file); err != nil {
+			if _, err := io.Copy(tarWriter, file); err != nil {
 				sugar.Debugf("Failed to write file %s: %v", path, err)
 				return nil
 			}

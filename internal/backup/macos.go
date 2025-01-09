@@ -2,93 +2,154 @@ package backup
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"backup-home/internal/platform"
+
+	"github.com/klauspost/pgzip"
+	"go.uber.org/zap"
 )
 
-func createMacOSArchive(source, backupPath string, compressionLevel int) error {
-	// Create output file
+func createMacOSArchive(source, backupPath string, compressionLevel int, verbose bool) error {
+	var logger *zap.Logger
+	var err error
+	if verbose {
+		logger, err = zap.NewDevelopment()
+	} else {
+		logger, err = zap.NewProduction()
+	}
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	defer func() {
+		_ = logger.Sync()
+	}()
+	sugar := logger.Sugar()
+
 	outFile, err := os.Create(backupPath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer outFile.Close()
 
-	// Create gzip writer with specified compression level
-	gzipWriter, err := gzip.NewWriterLevel(outFile, compressionLevel)
+	// Use parallel gzip compression with number of CPU cores
+	gzipWriter, err := pgzip.NewWriterLevel(outFile, compressionLevel)
 	if err != nil {
 		return fmt.Errorf("failed to create gzip writer: %w", err)
 	}
 	defer gzipWriter.Close()
 
-	// Create tar writer
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer tarWriter.Close()
 
-	// Get exclude patterns
-	excludePatterns := platform.GetExcludePatterns()
+	startTime := time.Now()
+	lastUpdate := time.Now()
+	updateInterval := 5 * time.Second
 
-	// Walk through the source directory
+	excludePatterns := platform.GetExcludePatterns()
+	sugar.Infof("Using exclude patterns: [%s]", strings.Join(excludePatterns, ", "))
+
 	err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			sugar.Debugf("Error accessing path %s: %v", path, err)
+			return nil
 		}
 
-		// Get relative path
 		relPath, err := filepath.Rel(source, path)
 		if err != nil {
 			return fmt.Errorf("failed to get relative path: %w", err)
 		}
 
-		// Skip the root directory itself
 		if relPath == "." {
 			return nil
 		}
 
-		// Check if path matches any exclude pattern
+		// Normalize path for pattern matching
+		normalizedPath := "./" + filepath.ToSlash(relPath)
+
+		// Check exclude patterns
 		for _, pattern := range excludePatterns {
-			matched, err := filepath.Match(pattern, "./"+relPath)
-			if err != nil {
-				return fmt.Errorf("invalid pattern %s: %w", pattern, err)
-			}
-			if matched {
-				if info.IsDir() {
-					return filepath.SkipDir
+			if strings.Contains(pattern, "**/") {
+				dirName := strings.TrimPrefix(pattern, "./**/")
+				dirName = strings.TrimSuffix(dirName, "/")
+				segments := strings.Split(normalizedPath, "/")
+				for _, segment := range segments {
+					if segment == dirName {
+						if verbose {
+							sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
+						}
+						if info.IsDir() {
+							return filepath.SkipDir
+						}
+						return nil
+					}
 				}
-				return nil
+			} else {
+				matched, err := filepath.Match(pattern, normalizedPath)
+				if err != nil {
+					sugar.Debugf("Invalid pattern %s: %v", pattern, err)
+					continue
+				}
+				if matched {
+					if verbose {
+						sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
+					}
+					if info.IsDir() {
+						return filepath.SkipDir
+					}
+					return nil
+				}
 			}
 		}
 
-		// Create header
+		if verbose {
+			sugar.Debugf("Including: %s", normalizedPath)
+		}
+
+		// Create and write header
 		header, err := tar.FileInfoHeader(info, info.Name())
 		if err != nil {
 			return fmt.Errorf("failed to create tar header: %w", err)
 		}
-
-		// Update header name to use relative path
 		header.Name = relPath
 
-		// Write header
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return fmt.Errorf("failed to write tar header: %w", err)
 		}
 
-		// If it's a regular file, write its contents
 		if info.Mode().IsRegular() {
 			file, err := os.Open(path)
 			if err != nil {
-				return fmt.Errorf("failed to open file %s: %w", path, err)
+				sugar.Debugf("Failed to open file %s: %v", path, err)
+				return nil
 			}
 			defer file.Close()
 
 			if _, err := io.Copy(tarWriter, file); err != nil {
-				return fmt.Errorf("failed to write file contents: %w", err)
+				sugar.Debugf("Failed to write file %s: %v", path, err)
+				return nil
 			}
+		}
+
+		// Progress reporting
+		if time.Since(lastUpdate) >= updateInterval {
+			if stat, err := outFile.Stat(); err == nil {
+				sizeMB := float64(stat.Size()) / 1024 / 1024
+				elapsed := time.Since(startTime).Seconds()
+				mbPerSec := sizeMB / elapsed
+
+				sugar.Infof(
+					"Archive size: %.2f MB (%.2f MB/s)",
+					sizeMB,
+					mbPerSec,
+				)
+			}
+			lastUpdate = time.Now()
 		}
 
 		return nil
@@ -96,6 +157,19 @@ func createMacOSArchive(source, backupPath string, compressionLevel int) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to walk directory: %w", err)
+	}
+
+	// Final statistics
+	if stat, err := outFile.Stat(); err == nil {
+		sizeMB := float64(stat.Size()) / 1024 / 1024
+		elapsed := time.Since(startTime).Seconds()
+		mbPerSec := sizeMB / elapsed
+
+		sugar.Infof(
+			"Final archive size: %.2f MB (average speed: %.2f MB/s)",
+			sizeMB,
+			mbPerSec,
+		)
 	}
 
 	return nil

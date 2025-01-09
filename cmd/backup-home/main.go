@@ -8,6 +8,9 @@ import (
 	"backup-home/internal/upload"
 
 	"github.com/mitchellh/go-homedir"
+	_ "github.com/rclone/rclone/backend/all"   // import all backends
+	_ "github.com/rclone/rclone/fs/operations" // import operations/* rc commands
+	_ "github.com/rclone/rclone/fs/sync"       // import sync/*
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -17,6 +20,7 @@ type CliOptions struct {
 	destination string
 	compression int
 	preview     bool
+	verbose     bool
 }
 
 func main() {
@@ -55,13 +59,13 @@ func main() {
 			}
 
 			// Create backup
-			backupPath, err := backup.CreateBackup(opts.source, opts.compression)
+			backupPath, err := backup.CreateBackup(opts.source, opts.compression, opts.verbose)
 			if err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
 
 			// Upload backup
-			if err := upload.UploadToRclone(backupPath, opts.destination); err != nil {
+			if err := upload.UploadToRclone(backupPath, opts.destination, opts.verbose); err != nil {
 				return fmt.Errorf("failed to upload backup: %w", err)
 			}
 
@@ -78,6 +82,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&opts.destination, "destination", "d", "", "Destination path for rclone (e.g., \"drive:\", \"gdrive:backup/home\")")
 	rootCmd.Flags().IntVarP(&opts.compression, "compression", "c", 6, "Compression level (0-9, default: 6)")
 	rootCmd.Flags().BoolVar(&opts.preview, "preview", false, "Preview what would be done without actually doing it")
+	rootCmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose output")
 
 	if err := rootCmd.MarkFlagRequired("destination"); err != nil {
 		sugar.Fatal(err)

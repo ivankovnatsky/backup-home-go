@@ -56,7 +56,6 @@ fmt-check:
 
 # Build for all platforms
 build-all: clean
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) -o dist/$(BINARY_NAME)_darwin_amd64 $(MAIN_PATH)
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) -o dist/$(BINARY_NAME)_darwin_arm64 $(MAIN_PATH)
 	GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/$(BINARY_NAME)_linux_amd64 $(MAIN_PATH)
 	GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/$(BINARY_NAME)_windows_amd64.exe $(MAIN_PATH)
@@ -77,19 +76,6 @@ install: build-release
 # Run all checks (format, lint, test)
 check: fmt-check lint test
 
-# Run the program with all CLI options
-run: build
-	./dist/$(BINARY_NAME) \
-		--source $(HOME) \
-		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)"
-
-# Preview what would be done without actually doing it
-preview: build
-	./dist/$(BINARY_NAME) \
-		--source $(HOME) \
-		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)" \
-		--preview 
-
 # Dry run to see what would be backed up
 dry-run: build
 	./dist/$(BINARY_NAME) \
@@ -97,6 +83,12 @@ dry-run: build
 		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)" \
 		--preview \
 		--compression 6
+
+# Run the program with all CLI options
+run: build
+	./dist/$(BINARY_NAME) \
+		--source $(HOME) \
+		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)"
 
 # Run with verbose output
 run-verbose: build

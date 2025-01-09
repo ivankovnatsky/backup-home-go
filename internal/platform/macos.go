@@ -3,6 +3,7 @@ package platform
 func getMacOSExcludes() []string {
 	return []string{
 		"./**/*.sock",
+		"./**/.build",
 		"./**/.venv",
 		"./**/__worktrees",
 		"./**/node_modules",

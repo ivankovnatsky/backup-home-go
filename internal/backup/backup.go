@@ -10,27 +10,33 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultCompressionLevel = 6
+var sugar *zap.SugaredLogger
 
 // CreateBackup creates a backup of the specified source directory
-func CreateBackup(source string, compressionLevel int) (string, error) {
-	logger, _ := zap.NewProduction()
+func CreateBackup(source string, compressionLevel int, verbose bool) (string, error) {
+	var logger *zap.Logger
+	var err error
+	if verbose {
+		logger, err = zap.NewDevelopment()
+	} else {
+		logger, err = zap.NewProduction()
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize logger: %w", err)
+	}
 	defer func() {
-		_ = logger.Sync() // ignoring sync error as we're shutting down
+		_ = logger.Sync()
 	}()
-	sugar := logger.Sugar()
+	sugar = logger.Sugar()
 
-	// Validate source path exists
 	if _, err := os.Stat(source); os.IsNotExist(err) {
 		return "", fmt.Errorf("source directory does not exist: %s", source)
 	}
 
-	// Use provided compression level or default to 6
 	if compressionLevel < 0 || compressionLevel > 9 {
 		compressionLevel = defaultCompressionLevel
 	}
 
-	// Get temporary directory for backup
 	tempDir := os.TempDir()
 	username, err := getUsername()
 	if err != nil {
@@ -43,8 +49,7 @@ func CreateBackup(source string, compressionLevel int) (string, error) {
 	sugar.Infof("Backup file: %s", backupPath)
 	sugar.Infof("Using compression level: %d", compressionLevel)
 
-	// Create platform-specific archive
-	if err := createArchive(source, backupPath, compressionLevel); err != nil {
+	if err := createArchive(source, backupPath, compressionLevel, verbose); err != nil {
 		return "", fmt.Errorf("failed to create archive: %w", err)
 	}
 
@@ -68,16 +73,4 @@ func getArchiveExtension() string {
 		return "zip"
 	}
 	return "tar.gz"
-}
-
-// createArchive delegates to the appropriate platform-specific implementation
-func createArchive(source, backupPath string, compressionLevel int) error {
-	switch runtime.GOOS {
-	case "darwin":
-		return createMacOSArchive(source, backupPath, compressionLevel)
-	case "windows":
-		return createWindowsArchive(source, backupPath, compressionLevel)
-	default:
-		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
-	}
 }
