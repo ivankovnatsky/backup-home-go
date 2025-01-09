@@ -3,6 +3,7 @@ module backup-home
 go 1.23.3
 
 require (
+	github.com/klauspost/compress v1.17.9
 	github.com/klauspost/pgzip v1.2.6
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/rclone/rclone v1.68.2
@@ -109,7 +110,6 @@ require (
 	github.com/jlaffaye/ftp v0.2.0 // indirect
 	github.com/jtolio/noiseconn v0.0.0-20231127013910-f6d9ecbf1de7 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/koofr/go-httpclient v0.0.0-20240520111329-e20f8f203988 // indirect
 	github.com/koofr/go-koofrclient v0.0.0-20221207135200-cbd7fc9ad6a6 // indirect
