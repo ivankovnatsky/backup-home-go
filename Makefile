@@ -12,15 +12,7 @@ MAIN_PATH=./cmd/backup-home
 
 # Default rclone remote and path
 RCLONE_REMOTE ?= drive_Crypt
-
-# Detect OS for path construction
-ifdef COMSPEC
-    # Windows path (COMSPEC is set on Windows)
-    RCLONE_PATH ?= Machines/$(shell hostname)/Users/$(shell echo %USERNAME%)
-else
-    # Unix-like systems (Linux/macOS)
-    RCLONE_PATH ?= Machines/$(shell hostname)/$(shell basename $(shell dirname $(HOME)))/$(shell whoami)
-endif
+RCLONE_PATH ?= Machines/$(shell hostname)/$(shell basename $(shell dirname $(HOME)))/$(shell whoami)
 
 # Default target
 all: clean dist build
@@ -54,11 +46,10 @@ fmt:
 fmt-check:
 	test -z $$(gofmt -l .)
 
-# Build for all platforms
+# Build for Unix platforms
 build-all: clean
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) -o dist/$(BINARY_NAME)_darwin_arm64 $(MAIN_PATH)
 	GOOS=linux GOARCH=amd64 $(GOBUILD) -o dist/$(BINARY_NAME)_linux_amd64 $(MAIN_PATH)
-	GOOS=windows GOARCH=amd64 $(GOBUILD) -o dist/$(BINARY_NAME)_windows_amd64.exe $(MAIN_PATH)
 
 # Install dependencies
 deps:

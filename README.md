@@ -15,20 +15,33 @@ Allow direnv to automatically load the development environment:
 direnv allow
 ```
 
-### Build
+### Building and Running
 
+#### On Windows
+Use the PowerShell script:
 ```console
-make build
+# Build the project
+.\build.ps1 build
+
+# Run the program
+.\build.ps1 run
+
+# Test run with preview
+.\build.ps1 dry-run
 ```
 
-## TODO
+#### On Unix/Linux/macOS
+Use Make:
+```console
+# Build the project
+make build
 
-- [ ] Add progress reporting
-- [ ] Implement proper error handling for various failure scenarios
-- [ ] Add retry logic for interrupted operations
-- [ ] Add tests
-- [ ] Add CI/CD to build all platforms binaries
-- [ ] Use libs instead of binaries
+# Run the program
+make run
+
+# Test run with preview
+make dry-run
+```
 
 ## Configure project
 
@@ -47,6 +60,15 @@ dist/
 
 go mod tidy # Updates go.mod
 ```
+
+## TODO
+
+- [ ] Add progress reporting
+- [ ] Implement proper error handling for various failure scenarios
+- [ ] Add retry logic for interrupted operations
+- [ ] Add tests
+- [ ] Add CI/CD to build all platforms binaries
+- [ ] Use libs instead of binaries
 
 ## Reasoning
 

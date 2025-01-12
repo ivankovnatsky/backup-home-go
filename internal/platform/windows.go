@@ -4,8 +4,12 @@ func getWindowsExcludes() []string {
 	return []string{
 		"scoop",
 		"AppData\\Local\\AMD",
+		"AppData\\Local\\ASUS",
+		"AppData\\Local\\ForzaHorizon5",
 		"AppData\\Local\\Microsoft",
 		"AppData\\Local\\Mozilla\\Firefox",
+		"AppData\\Local\\gopls",
+		"AppData\\Local\\nvim-data",
 		"AppData\\Roaming\\Mozilla\\Firefox",
 		"AppData\\Local\\Steam\\htmlcache",
 		"AppData\\Local\\Packages",
@@ -32,5 +36,7 @@ func getWindowsExcludes() []string {
 		"Documents\\My Music",
 		"Documents\\My Pictures",
 		"Documents\\My Videos",
+		"AppData\\Local\\go-build",
+		".cursor\\extensions",
 	}
 }
