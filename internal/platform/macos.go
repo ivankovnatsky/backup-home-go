@@ -8,6 +8,7 @@ func getMacOSExcludes() []string {
 		"./**/__worktrees",
 		"./**/node_modules",
 		"./**/target",
+		"./**/venv",
 		"./.Trash",
 		"./.cache/huggingface",
 		"./.cache/nix",
