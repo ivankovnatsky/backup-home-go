@@ -22,7 +22,15 @@
             src = ./.;
             
             vendorHash = null;
+            
+            proxyVendor = true;
+            allowGoReference = true;
+            preBuild = ''
+              export GOPROXY=https://proxy.golang.org,direct
+              go mod vendor
+            '';
           };
+          backup-home = self.packages.${system}.default;
         };
 
         devShells.default = pkgs.mkShell {
