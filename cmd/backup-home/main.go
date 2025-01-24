@@ -15,6 +15,12 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	version   = "dev"
+	gitCommit = "none"
+	buildTime = "unknown"
+)
+
 type CliOptions struct {
 	source      string
 	destination string
@@ -33,8 +39,9 @@ func main() {
 	var opts CliOptions
 
 	var rootCmd = &cobra.Command{
-		Use:   "backup-home",
-		Short: "Backup home directory to cloud storage",
+		Use:     "backup-home",
+		Short:   "Backup home directory to cloud storage",
+		Version: fmt.Sprintf("%s (commit: %s, built at: %s)", version, gitCommit, buildTime),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get source directory or default to home
 			if opts.source == "" {

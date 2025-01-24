@@ -34,12 +34,20 @@ jobs:
           go-version: '1.21'
           check-latest: true
 
+      - name: Set Version
+        run: |
+          echo "VERSION=$(make version | grep Version: | cut -d' ' -f2)" >> $GITHUB_ENV
+          echo "GIT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')" >> $GITHUB_ENV
+
       - name: Build Binary
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          go build -v -o dist/${{ matrix.artifact_name }} -ldflags="-s -w" ./cmd/backup-home
+          go build -v -o dist/${{ matrix.artifact_name }} \
+            -ldflags="-s -w -X main.version=${VERSION} -X main.gitCommit=${GIT_COMMIT} -X main.buildTime=${BUILD_TIME}" \
+            ./cmd/backup-home
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
