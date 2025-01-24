@@ -140,7 +140,7 @@ release: bump-version
 
 re-release:
 	@echo "Re-creating release v${VERSION}"
-	@gh release delete "v${VERSION}" --yes || true
+	@gh release delete "v${VERSION}" --cleanup-tag --yes || true
 	@git push --follow-tags
 	@gh release create "v${VERSION}" --generate-notes
 
