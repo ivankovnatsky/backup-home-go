@@ -8,6 +8,9 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Binary
@@ -60,6 +63,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
