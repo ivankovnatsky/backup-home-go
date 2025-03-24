@@ -35,6 +35,7 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 	lastUpdate := time.Now()
 	updateInterval := 5 * time.Second
 
+	// Get exclude patterns
 	excludePatterns := platform.GetExcludePatterns()
 	sugar.Infof("Using exclude patterns: [%s]", strings.Join(excludePatterns, ", "))
 
@@ -58,36 +59,18 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 
 		// Check exclude patterns
 		for _, pattern := range excludePatterns {
-			if strings.Contains(pattern, "**/") {
-				dirName := strings.TrimPrefix(pattern, "./**/")
-				dirName = strings.TrimSuffix(dirName, "/")
-				segments := strings.Split(normalizedPath, "/")
-				for _, segment := range segments {
-					if segment == dirName {
-						if verbose {
-							sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
-						}
-						if info.IsDir() {
-							return filepath.SkipDir
-						}
-						return nil
-					}
+			segments := strings.Split(pattern, "/")
+			pathSegments := strings.Split(normalizedPath, "/")
+
+			matched := matchPattern(segments, pathSegments)
+			if matched {
+				if verbose {
+					sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
 				}
-			} else {
-				matched, err := filepath.Match(pattern, normalizedPath)
-				if err != nil {
-					sugar.Debugf("Invalid pattern %s: %v", pattern, err)
-					continue
+				if info.IsDir() {
+					return filepath.SkipDir
 				}
-				if matched {
-					if verbose {
-						sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
-					}
-					if info.IsDir() {
-						return filepath.SkipDir
-					}
-					return nil
-				}
+				return nil
 			}
 		}
 
@@ -125,9 +108,12 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 			}
 			defer file.Close()
 
-			if _, err := io.Copy(tarWriter, file); err != nil {
-				sugar.Debugf("Failed to write file %s: %v", path, err)
-				return nil
+			buf := bufferPool.Get().([]byte)
+			_, err = io.CopyBuffer(tarWriter, file, buf)
+			bufferPool.Put(buf)
+			if err != nil {
+				sugar.Errorf("Failed to write file %s: %v", path, err)
+				return fmt.Errorf("failed to write file: %w", err)
 			}
 		}
 
@@ -151,19 +137,14 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to walk directory: %w", err)
+		return fmt.Errorf("failed to create archive: %w", err)
 	}
 
 	// Final statistics
 	if stat, err := outFile.Stat(); err == nil {
-		sizeMB := float64(stat.Size()) / 1024 / 1024
-		elapsed := time.Since(startTime).Seconds()
-		mbPerSec := sizeMB / elapsed
-
-		sugar.Infof(
-			"Final archive size: %.2f MB (average speed: %.2f MB/s)",
-			sizeMB,
-			mbPerSec,
+		sugar.Infof("Final archive size: %.2f MB (average speed: %.2f MB/s)",
+			float64(stat.Size())/1024/1024,
+			float64(stat.Size())/1024/1024/time.Since(startTime).Seconds(),
 		)
 	}
 

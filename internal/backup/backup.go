@@ -13,7 +13,7 @@ import (
 var sugar *zap.SugaredLogger
 
 // CreateBackup creates a backup of the specified source directory
-func CreateBackup(source string, compressionLevel int, verbose bool) (string, error) {
+func CreateBackup(source string, backupPath string, compressionLevel int, verbose bool) (string, error) {
 	var logger *zap.Logger
 	var err error
 	if verbose {
@@ -27,6 +27,7 @@ func CreateBackup(source string, compressionLevel int, verbose bool) (string, er
 	defer func() {
 		_ = logger.Sync()
 	}()
+
 	sugar = logger.Sugar()
 
 	if _, err := os.Stat(source); os.IsNotExist(err) {
@@ -37,13 +38,15 @@ func CreateBackup(source string, compressionLevel int, verbose bool) (string, er
 		compressionLevel = defaultCompressionLevel
 	}
 
-	tempDir := os.TempDir()
-	username, err := getUsername()
-	if err != nil {
-		return "", fmt.Errorf("failed to get username: %w", err)
+	// Use provided backup path or create default one
+	if backupPath == "" {
+		tempDir := os.TempDir()
+		username, err := getUsername()
+		if err != nil {
+			return "", fmt.Errorf("failed to get username: %w", err)
+		}
+		backupPath = filepath.Join(tempDir, fmt.Sprintf("%s.%s", username, getArchiveExtension()))
 	}
-
-	backupPath := filepath.Join(tempDir, fmt.Sprintf("%s.%s", username, getArchiveExtension()))
 
 	sugar.Infof("Creating backup of: %s", source)
 	sugar.Infof("Backup file: %s", backupPath)

@@ -51,6 +51,7 @@ func createMacOSArchive(source, backupPath string, compressionLevel int, verbose
 	lastUpdate := time.Now()
 	updateInterval := 5 * time.Second
 
+	// Get exclude patterns
 	excludePatterns := platform.GetExcludePatterns()
 	sugar.Infof("Using exclude patterns: [%s]", strings.Join(excludePatterns, ", "))
 
@@ -74,36 +75,18 @@ func createMacOSArchive(source, backupPath string, compressionLevel int, verbose
 
 		// Check exclude patterns
 		for _, pattern := range excludePatterns {
-			if strings.Contains(pattern, "**/") {
-				dirName := strings.TrimPrefix(pattern, "./**/")
-				dirName = strings.TrimSuffix(dirName, "/")
-				segments := strings.Split(normalizedPath, "/")
-				for _, segment := range segments {
-					if segment == dirName {
-						if verbose {
-							sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
-						}
-						if info.IsDir() {
-							return filepath.SkipDir
-						}
-						return nil
-					}
+			segments := strings.Split(pattern, "/")
+			pathSegments := strings.Split(normalizedPath, "/")
+
+			matched := matchPattern(segments, pathSegments)
+			if matched {
+				if verbose {
+					sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
 				}
-			} else {
-				matched, err := filepath.Match(pattern, normalizedPath)
-				if err != nil {
-					sugar.Debugf("Invalid pattern %s: %v", pattern, err)
-					continue
+				if info.IsDir() {
+					return filepath.SkipDir
 				}
-				if matched {
-					if verbose {
-						sugar.Debugf("Excluding: %s (matched pattern %s)", normalizedPath, pattern)
-					}
-					if info.IsDir() {
-						return filepath.SkipDir
-					}
-					return nil
-				}
+				return nil
 			}
 		}
 

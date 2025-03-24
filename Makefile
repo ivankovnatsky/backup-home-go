@@ -67,9 +67,15 @@ fmt-check:
 	test -z $$(gofmt -l .)
 
 # Build for Unix platforms
-build-all: clean
+build-all:
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)_darwin_arm64 $(MAIN_PATH)
 	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)_linux_amd64 $(MAIN_PATH)
+
+build-linux:
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)_linux_amd64 $(MAIN_PATH)
+
+build-windows:
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)_windows_amd64.exe $(MAIN_PATH)
 
 # Install dependencies
 deps:

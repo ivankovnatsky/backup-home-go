@@ -48,5 +48,6 @@ func getMacOSExcludes() []string {
 		"./Pictures",
 		"./Sources/github.com/NixOS/nixpkgs",
 		"./go",
+		"./**/.DS_Store",
 	}
 }

@@ -63,12 +63,12 @@ go mod tidy # Updates go.mod
 
 ## TODO
 
-- [ ] Add progress reporting
 - [ ] Implement proper error handling for various failure scenarios
 - [ ] Add retry logic for interrupted operations
 - [ ] Add tests
-- [ ] Add CI/CD to build all platforms binaries
-- [ ] Use libs instead of binaries
+- [ ] Add flag to keep backup file
+- [ ] Add flag to to ignore excludes, i.e. backup everything
+- [ ] Make sure we can just ignore errors and backup everything for all platforms
 
 ## Reasoning
 

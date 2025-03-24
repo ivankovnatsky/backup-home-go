@@ -1,0 +1,17 @@
+2025-01-26T09:15:42.253+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXcomposite.so.1
+2025-01-26T09:15:42.254+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXcomposite.so.1.0.0
+2025-01-26T09:15:42.254+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXcursor.so.1
+2025-01-26T09:15:42.254+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXcursor.so.1.0.2
+2025-01-26T09:15:42.255+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXdamage.so.1
+2025-01-26T09:15:42.255+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXdamage.so.1.1.0
+2025-01-26T09:15:42.256+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXdmcp.so.6
+2025-01-26T09:15:42.256+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXdmcp.so.6.0.0
+2025-01-26T09:15:42.257+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXext.so.6
+2025-01-26T09:15:42.257+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXext.so.6.4.0
+2025-01-26T09:15:42.258+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXfixes.so.3
+2025-01-26T09:15:42.258+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXfixes.so.3.1.0
+2025-01-26T09:15:42.259+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXft.so.2
+2025-01-26T09:15:42.259+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXft.so.2.2.0
+2025-01-26T09:15:42.259+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXi.so.6
+2025-01-26T09:15:42.259+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXi.so.6.1.0
+2025-01-26T09:15:42.260+0200    DEBUG   backup/linux.go:78      Including: ./.local/share/Steam/ubuntu12_32/steam-runtime.old/usr/lib/x86_64-linux-gnu/libXinerama.so.1

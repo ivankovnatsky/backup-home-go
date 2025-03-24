@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"backup-home/internal/backup"
@@ -21,12 +22,14 @@ var (
 	buildTime = "unknown"
 )
 
-type CliOptions struct {
+type options struct {
 	source      string
 	destination string
+	backupPath  string
 	compression int
-	preview     bool
 	verbose     bool
+	preview     bool
+	skipOnError bool
 }
 
 func main() {
@@ -36,7 +39,7 @@ func main() {
 	}()
 	sugar := logger.Sugar()
 
-	var opts CliOptions
+	var opts options
 
 	var rootCmd = &cobra.Command{
 		Use:     "backup-home",
@@ -66,7 +69,7 @@ func main() {
 			}
 
 			// Create backup
-			backupPath, err := backup.CreateBackup(opts.source, opts.compression, opts.verbose)
+			backupPath, err := backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose)
 			if err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
@@ -85,11 +88,18 @@ func main() {
 		},
 	}
 
-	rootCmd.Flags().StringVarP(&opts.source, "source", "s", "", "Source directory to backup (defaults to home directory)")
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		log.Fatalf("failed to get home directory: %v", err)
+	}
+
+	rootCmd.Flags().StringVarP(&opts.source, "source", "s", homeDir, "Source directory to backup (defaults to home directory)")
 	rootCmd.Flags().StringVarP(&opts.destination, "destination", "d", "", "Destination path for rclone (e.g., \"drive:\", \"gdrive:backup/home\")")
+	rootCmd.Flags().StringVar(&opts.backupPath, "backup-path", "", "Custom path for temporary backup file (defaults to system temp directory)")
 	rootCmd.Flags().IntVarP(&opts.compression, "compression", "c", 6, "Compression level (0-9, default: 6)")
-	rootCmd.Flags().BoolVar(&opts.preview, "preview", false, "Preview what would be done without actually doing it")
 	rootCmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose output")
+	rootCmd.Flags().Bool("preview", false, "Preview what would be done without actually doing it")
+	rootCmd.Flags().BoolVar(&opts.skipOnError, "skip-errors", true, "Skip files that can't be accessed instead of failing")
 
 	if err := rootCmd.MarkFlagRequired("destination"); err != nil {
 		sugar.Fatal(err)
