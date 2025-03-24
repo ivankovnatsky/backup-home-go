@@ -30,6 +30,7 @@ type options struct {
 	verbose     bool
 	preview     bool
 	skipOnError bool
+	skipUpload  bool
 }
 
 func main() {
@@ -59,12 +60,18 @@ func main() {
 				fmt.Println("\nPreview summary:")
 				fmt.Println("---------------")
 				fmt.Printf("Source: %s\n", opts.source)
-				fmt.Printf("Destination: %s\n", opts.destination)
+				if !opts.skipUpload {
+					fmt.Printf("Destination: %s\n", opts.destination)
+				}
 				fmt.Printf("Compression level: %d\n", opts.compression)
 				fmt.Println("\nThis would:")
 				fmt.Printf("1. Create backup archive of: %s\n", opts.source)
-				fmt.Printf("2. Upload to: %s\n", opts.destination)
-				fmt.Println("3. Clean up temporary files")
+				if !opts.skipUpload {
+					fmt.Printf("2. Upload to: %s\n", opts.destination)
+					fmt.Println("3. Clean up temporary files")
+				} else {
+					fmt.Println("2. Skip upload (backup file will be preserved)")
+				}
 				return nil
 			}
 
@@ -74,14 +81,18 @@ func main() {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
 
-			// Upload backup
-			if err := upload.UploadToRclone(backupPath, opts.destination, opts.verbose); err != nil {
-				return fmt.Errorf("failed to upload backup: %w", err)
-			}
+			// Upload backup if not skipped
+			if !opts.skipUpload {
+				if err := upload.UploadToRclone(backupPath, opts.destination, opts.verbose); err != nil {
+					return fmt.Errorf("failed to upload backup: %w", err)
+				}
 
-			// Cleanup
-			if err := os.Remove(backupPath); err != nil {
-				sugar.Warnf("Failed to cleanup backup file: %v", err)
+				// Cleanup only if uploaded
+				if err := os.Remove(backupPath); err != nil {
+					sugar.Warnf("Failed to cleanup backup file: %v", err)
+				}
+			} else {
+				sugar.Infof("Upload skipped. Backup file is available at: %s", backupPath)
 			}
 
 			return nil
@@ -100,9 +111,17 @@ func main() {
 	rootCmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose output")
 	rootCmd.Flags().Bool("preview", false, "Preview what would be done without actually doing it")
 	rootCmd.Flags().BoolVar(&opts.skipOnError, "skip-errors", true, "Skip files that can't be accessed instead of failing")
+	rootCmd.Flags().BoolVar(&opts.skipUpload, "skip-upload", false, "Skip uploading the backup archive")
 
-	if err := rootCmd.MarkFlagRequired("destination"); err != nil {
-		sugar.Fatal(err)
+	// Only require destination if we're not skipping upload
+	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		skipUpload, _ := cmd.Flags().GetBool("skip-upload")
+		if !skipUpload {
+			if opts.destination == "" {
+				return fmt.Errorf("required flag \"destination\" not set")
+			}
+		}
+		return nil
 	}
 
 	if err := rootCmd.Execute(); err != nil {
