@@ -6,29 +6,25 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"backup-home/internal/logging"
+
 	"github.com/mitchellh/go-homedir"
 	"go.uber.org/zap"
 )
 
+// Initialize sugar variable at package level for convenience
 var sugar *zap.SugaredLogger
 
 // CreateBackup creates a backup of the specified source directory
 func CreateBackup(source string, backupPath string, compressionLevel int, verbose bool) (string, error) {
-	var logger *zap.Logger
-	var err error
-	if verbose {
-		logger, err = zap.NewDevelopment()
-	} else {
-		logger, err = zap.NewProduction()
-	}
-	if err != nil {
+	// Initialize logger
+	if err := logging.InitLogger(verbose); err != nil {
 		return "", fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer func() {
-		_ = logger.Sync()
-	}()
-
-	sugar = logger.Sugar()
+	defer logging.SyncLogger()
+	
+	// Get the sugar reference for this package
+	sugar = logging.GetSugar()
 
 	if _, err := os.Stat(source); os.IsNotExist(err) {
 		return "", fmt.Errorf("source directory does not exist: %s", source)

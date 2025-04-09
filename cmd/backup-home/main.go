@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"backup-home/internal/backup"
+	"backup-home/internal/logging"
 	"backup-home/internal/upload"
 
 	"github.com/mitchellh/go-homedir"
@@ -13,7 +14,6 @@ import (
 	_ "github.com/rclone/rclone/fs/operations" // import operations/* rc commands
 	_ "github.com/rclone/rclone/fs/sync"       // import sync/*
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var (
@@ -34,13 +34,17 @@ type options struct {
 }
 
 func main() {
-	logger, _ := zap.NewProduction()
-	defer func() {
-		_ = logger.Sync() // ignoring sync error as we're shutting down
-	}()
-	sugar := logger.Sugar()
-
 	var opts options
+	
+	// We'll update the logger with the verbose flag after parsing args
+	// but initialize with defaults for now
+	if err := logging.InitLogger(false); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer logging.SyncLogger()
+	
+	// Get sugar for local use
+	sugar := logging.GetSugar()
 
 	var rootCmd = &cobra.Command{
 		Use:     "backup-home",
@@ -101,6 +105,7 @@ func main() {
 
 	homeDir, err := homedir.Dir()
 	if err != nil {
+		// Before logger is fully initialized, fall back to standard log
 		log.Fatalf("failed to get home directory: %v", err)
 	}
 
@@ -113,8 +118,14 @@ func main() {
 	rootCmd.Flags().BoolVar(&opts.skipOnError, "skip-errors", true, "Skip files that can't be accessed instead of failing")
 	rootCmd.Flags().BoolVar(&opts.skipUpload, "skip-upload", false, "Skip uploading the backup archive")
 
-	// Only require destination if we're not skipping upload
+	// Update logger and validate flags before running 
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		// Update logger with verbose flag
+		if err := logging.InitLogger(opts.verbose); err != nil {
+			return fmt.Errorf("failed to reinitialize logger: %w", err)
+		}
+		
+		// Check if destination is provided when needed
 		skipUpload, _ := cmd.Flags().GetBool("skip-upload")
 		if !skipUpload {
 			if opts.destination == "" {
@@ -125,6 +136,7 @@ func main() {
 	}
 
 	if err := rootCmd.Execute(); err != nil {
-		sugar.Fatal(err)
+		// Get the latest sugar in case it was updated by PreRunE
+		logging.GetSugar().Fatal(err)
 	}
 }

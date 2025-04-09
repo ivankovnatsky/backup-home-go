@@ -9,27 +9,20 @@ import (
 	"strings"
 	"time"
 
+	"backup-home/internal/logging"
 	"backup-home/internal/platform"
 
 	"github.com/klauspost/pgzip"
-	"go.uber.org/zap"
 )
 
 func createMacOSArchive(source, backupPath string, compressionLevel int, verbose bool) error {
-	var logger *zap.Logger
-	var err error
-	if verbose {
-		logger, err = zap.NewDevelopment()
-	} else {
-		logger, err = zap.NewProduction()
-	}
-	if err != nil {
+	// Initialize logger (this is safe to call multiple times)
+	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer func() {
-		_ = logger.Sync()
-	}()
-	sugar := logger.Sugar()
+	
+	// Get the sugar reference for this package
+	sugar = logging.GetSugar()
 
 	outFile, err := os.Create(backupPath)
 	if err != nil {

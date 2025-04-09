@@ -7,9 +7,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"backup-home/internal/logging"
+
 	"github.com/rclone/rclone/librclone/librclone"
 	"go.uber.org/zap"
 )
+
+// Initialize sugar variable at package level for convenience
+var sugar *zap.SugaredLogger
 
 type copyFileRequest struct {
 	SrcFs     string `json:"srcFs"`
@@ -19,20 +24,14 @@ type copyFileRequest struct {
 }
 
 func UploadToRclone(source, destination string, verbose bool) error {
-	var logger *zap.Logger
-	var err error
-	if verbose {
-		logger, err = zap.NewDevelopment()
-	} else {
-		logger, err = zap.NewProduction()
-	}
-	if err != nil {
+	// Initialize logger
+	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer func() {
-		_ = logger.Sync()
-	}()
-	sugar := logger.Sugar()
+	defer logging.SyncLogger()
+	
+	// Get the sugar reference for this package
+	sugar = logging.GetSugar()
 
 	sugar.Infof("Uploading backup to: %s", destination)
 	startTime := time.Now()

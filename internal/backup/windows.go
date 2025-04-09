@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"backup-home/internal/logging"
 	"backup-home/internal/platform"
 
 	"github.com/klauspost/compress/zstd"
@@ -24,6 +25,13 @@ var bufferPool = sync.Pool{
 }
 
 func createWindowsArchive(source, backupPath string, compressionLevel int, verbose bool) error {
+	// Initialize logger (this is safe to call multiple times)
+	if err := logging.InitLogger(verbose); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	
+	// Get the sugar reference for this package
+	sugar = logging.GetSugar()
 	outFile, err := os.Create(backupPath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
