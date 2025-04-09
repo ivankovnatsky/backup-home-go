@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -13,7 +14,47 @@ var (
 	currentLevel zap.AtomicLevel
 )
 
-// InitLogger initializes the package-level logger
+// ANSI color codes
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+	colorPurple = "\033[35m"
+	colorCyan   = "\033[36m"
+	colorGray   = "\033[37m"
+)
+
+// getColoredLevelEncoder returns a level encoder with colorized output
+func getColoredLevelEncoder() zapcore.LevelEncoder {
+	return func(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+		var levelStr string
+		
+		switch l {
+		case zapcore.DebugLevel:
+			levelStr = colorCyan + "DEBUG" + colorReset
+		case zapcore.InfoLevel:
+			levelStr = colorGreen + "INFO" + colorReset
+		case zapcore.WarnLevel:
+			levelStr = colorYellow + "WARN" + colorReset
+		case zapcore.ErrorLevel:
+			levelStr = colorRed + "ERROR" + colorReset
+		case zapcore.DPanicLevel:
+			levelStr = colorPurple + "DPANIC" + colorReset
+		case zapcore.PanicLevel:
+			levelStr = colorPurple + "PANIC" + colorReset
+		case zapcore.FatalLevel:
+			levelStr = colorRed + "FATAL" + colorReset
+		default:
+			levelStr = colorGray + l.String() + colorReset
+		}
+		
+		enc.AppendString(levelStr)
+	}
+}
+
+// InitLogger initializes the package-level logger with colored output
 func InitLogger(verbose bool) error {
 	var err error
 	loggerOnce.Do(func() {
@@ -27,6 +68,12 @@ func InitLogger(verbose bool) error {
 		}
 
 		config.Level = currentLevel
+		
+		// Configure custom encoder with colors
+		config.EncoderConfig.EncodeLevel = getColoredLevelEncoder()
+		config.EncoderConfig.TimeKey = "timestamp"
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		
 		// Use the same user-friendly format for both modes
 		logger, err = config.Build()
 		if err != nil {
