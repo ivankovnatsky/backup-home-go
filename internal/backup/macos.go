@@ -15,7 +15,7 @@ import (
 	"github.com/klauspost/pgzip"
 )
 
-func createMacOSArchive(source, backupPath string, compressionLevel int, verbose bool) error {
+func createMacOSArchive(source, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool) error {
 	// Initialize logger (this is safe to call multiple times)
 	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
@@ -45,8 +45,13 @@ func createMacOSArchive(source, backupPath string, compressionLevel int, verbose
 	updateInterval := 5 * time.Second
 
 	// Get exclude patterns
-	excludePatterns := platform.GetExcludePatterns()
-	sugar.Infof("Using exclude patterns: [%s]", strings.Join(excludePatterns, ", "))
+	var excludePatterns []string
+	if !ignoreExcludes {
+		excludePatterns = platform.GetExcludePatterns()
+		sugar.Infof("Using exclude patterns: [%s]", strings.Join(excludePatterns, ", "))
+	} else {
+		sugar.Info("Ignoring exclude patterns - backing up everything")
+	}
 
 	err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

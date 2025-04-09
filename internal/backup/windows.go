@@ -24,7 +24,7 @@ var bufferPool = sync.Pool{
 	},
 }
 
-func createWindowsArchive(source, backupPath string, compressionLevel int, verbose bool) error {
+func createWindowsArchive(source, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool) error {
 	// Initialize logger (this is safe to call multiple times)
 	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
@@ -89,13 +89,19 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 	updateInterval := 5 * time.Second
 	var totalSize int64
 
-	excludePatterns := platform.GetExcludePatterns()
+	var excludePatterns []string
 	var displayPatterns []string
-	for _, pattern := range excludePatterns {
-		// Keep Windows backslashes for display
-		displayPatterns = append(displayPatterns, pattern)
+	
+	if !ignoreExcludes {
+		excludePatterns = platform.GetExcludePatterns()
+		for _, pattern := range excludePatterns {
+			// Keep Windows backslashes for display
+			displayPatterns = append(displayPatterns, pattern)
+		}
+		sugar.Infof("Using exclude patterns: [%s]", strings.Join(displayPatterns, ", "))
+	} else {
+		sugar.Info("Ignoring exclude patterns - backing up everything")
 	}
-	sugar.Infof("Using exclude patterns: [%s]", strings.Join(displayPatterns, ", "))
 
 	go func() {
 		err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
@@ -109,7 +115,7 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 				return nil
 			}
 
-			if isExcluded(relPath, excludePatterns) {
+			if !ignoreExcludes && isExcluded(relPath, excludePatterns) {
 				if info.IsDir() {
 					sugar.Debugf("Excluding directory: %s", relPath)
 					return filepath.SkipDir

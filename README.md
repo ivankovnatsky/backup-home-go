@@ -61,15 +61,6 @@ dist/
 go mod tidy # Updates go.mod
 ```
 
-## TODO
-
-- [ ] Implement proper error handling for various failure scenarios
-- [ ] Add retry logic for interrupted operations
-- [ ] Add tests
-- [ ] Add flag to keep backup file
-- [ ] Add flag to to ignore excludes, i.e. backup everything
-- [ ] Make sure we can just ignore errors and backup everything for all platforms
-
 ## Reasoning
 
 After trying out to implement all that in rust, I decided to try out go, since

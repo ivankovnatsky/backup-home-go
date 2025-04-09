@@ -16,7 +16,7 @@ import (
 var sugar *zap.SugaredLogger
 
 // CreateBackup creates a backup of the specified source directory
-func CreateBackup(source string, backupPath string, compressionLevel int, verbose bool) (string, error) {
+func CreateBackup(source string, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool) (string, error) {
 	// Initialize logger
 	if err := logging.InitLogger(verbose); err != nil {
 		return "", fmt.Errorf("failed to initialize logger: %w", err)
@@ -47,8 +47,11 @@ func CreateBackup(source string, backupPath string, compressionLevel int, verbos
 	sugar.Infof("Creating backup of: %s", source)
 	sugar.Infof("Backup file: %s", backupPath)
 	sugar.Infof("Using compression level: %d", compressionLevel)
+	if ignoreExcludes {
+		sugar.Infof("Ignoring exclude patterns - backing up everything")
+	}
 
-	if err := createArchive(source, backupPath, compressionLevel, verbose); err != nil {
+	if err := createArchive(source, backupPath, compressionLevel, verbose, ignoreExcludes); err != nil {
 		return "", fmt.Errorf("failed to create archive: %w", err)
 	}
 

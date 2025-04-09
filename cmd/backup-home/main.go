@@ -23,14 +23,16 @@ var (
 )
 
 type options struct {
-	source      string
-	destination string
-	backupPath  string
-	compression int
-	verbose     bool
-	preview     bool
-	skipOnError bool
-	skipUpload  bool
+	source        string
+	destination   string
+	backupPath    string
+	compression   int
+	verbose       bool
+	preview       bool
+	skipOnError   bool
+	skipUpload    bool
+	keepBackup    bool
+	ignoreExcludes bool
 }
 
 func main() {
@@ -68,11 +70,18 @@ func main() {
 					fmt.Printf("Destination: %s\n", opts.destination)
 				}
 				fmt.Printf("Compression level: %d\n", opts.compression)
+				if opts.ignoreExcludes {
+					fmt.Println("Ignore excludes: Yes (backing up everything)")
+				}
 				fmt.Println("\nThis would:")
 				fmt.Printf("1. Create backup archive of: %s\n", opts.source)
 				if !opts.skipUpload {
 					fmt.Printf("2. Upload to: %s\n", opts.destination)
-					fmt.Println("3. Clean up temporary files")
+					if !opts.keepBackup {
+						fmt.Println("3. Clean up temporary files")
+					} else {
+						fmt.Println("3. Keep backup file after upload")
+					}
 				} else {
 					fmt.Println("2. Skip upload (backup file will be preserved)")
 				}
@@ -80,7 +89,7 @@ func main() {
 			}
 
 			// Create backup
-			backupPath, err := backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose)
+			backupPath, err := backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose, opts.ignoreExcludes)
 			if err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
@@ -91,9 +100,15 @@ func main() {
 					return fmt.Errorf("failed to upload backup: %w", err)
 				}
 
-				// Cleanup only if uploaded
-				if err := os.Remove(backupPath); err != nil {
-					sugar.Warnf("Failed to cleanup backup file: %v", err)
+				// Cleanup only if uploaded and not keeping backup
+				if !opts.keepBackup {
+					if err := os.Remove(backupPath); err != nil {
+						sugar.Warnf("Failed to cleanup backup file: %v", err)
+					} else {
+						sugar.Debugf("Removed backup file: %s", backupPath)
+					}
+				} else {
+					sugar.Infof("Keeping backup file at: %s", backupPath)
 				}
 			} else {
 				sugar.Infof("Upload skipped. Backup file is available at: %s", backupPath)
@@ -117,6 +132,8 @@ func main() {
 	rootCmd.Flags().Bool("preview", false, "Preview what would be done without actually doing it")
 	rootCmd.Flags().BoolVar(&opts.skipOnError, "skip-errors", true, "Skip files that can't be accessed instead of failing")
 	rootCmd.Flags().BoolVar(&opts.skipUpload, "skip-upload", false, "Skip uploading the backup archive")
+	rootCmd.Flags().BoolVar(&opts.keepBackup, "keep-backup", false, "Keep the backup file after uploading")
+	rootCmd.Flags().BoolVar(&opts.ignoreExcludes, "ignore-excludes", false, "Ignore exclude patterns and backup everything")
 
 	// Update logger and validate flags before running
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
