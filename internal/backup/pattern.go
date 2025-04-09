@@ -53,4 +53,4 @@ func matchPattern(pattern, path []string) bool {
 	}
 
 	return matchPattern(pattern[1:], path[1:])
-} 
+}

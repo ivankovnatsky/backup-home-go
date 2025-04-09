@@ -20,12 +20,12 @@ func InitLogger(verbose bool) error {
 		// Create a user-friendly console logger configuration
 		config := zap.NewDevelopmentConfig()
 		currentLevel = zap.NewAtomicLevelAt(zap.InfoLevel)
-		
+
 		// Set the log level based on verbose flag
 		if verbose {
 			currentLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
 		}
-		
+
 		config.Level = currentLevel
 		// Use the same user-friendly format for both modes
 		logger, err = config.Build()
@@ -34,7 +34,7 @@ func InitLogger(verbose bool) error {
 		}
 		sugar = logger.Sugar()
 	})
-	
+
 	// If logger is already initialized but verbose flag changed,
 	// update the level dynamically
 	if logger != nil && verbose && currentLevel.Level() != zap.DebugLevel {
@@ -42,7 +42,7 @@ func InitLogger(verbose bool) error {
 	} else if logger != nil && !verbose && currentLevel.Level() != zap.InfoLevel {
 		currentLevel.SetLevel(zap.InfoLevel)
 	}
-	
+
 	return err
 }
 

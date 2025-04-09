@@ -20,7 +20,7 @@ func createMacOSArchive(source, backupPath string, compressionLevel int, verbose
 	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	
+
 	// Get the sugar reference for this package
 	sugar = logging.GetSugar()
 

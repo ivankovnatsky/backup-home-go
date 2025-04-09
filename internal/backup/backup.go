@@ -22,7 +22,7 @@ func CreateBackup(source string, backupPath string, compressionLevel int, verbos
 		return "", fmt.Errorf("failed to initialize logger: %w", err)
 	}
 	defer logging.SyncLogger()
-	
+
 	// Get the sugar reference for this package
 	sugar = logging.GetSugar()
 

@@ -35,14 +35,14 @@ type options struct {
 
 func main() {
 	var opts options
-	
+
 	// We'll update the logger with the verbose flag after parsing args
 	// but initialize with defaults for now
 	if err := logging.InitLogger(false); err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 	defer logging.SyncLogger()
-	
+
 	// Get sugar for local use
 	sugar := logging.GetSugar()
 
@@ -118,13 +118,13 @@ func main() {
 	rootCmd.Flags().BoolVar(&opts.skipOnError, "skip-errors", true, "Skip files that can't be accessed instead of failing")
 	rootCmd.Flags().BoolVar(&opts.skipUpload, "skip-upload", false, "Skip uploading the backup archive")
 
-	// Update logger and validate flags before running 
+	// Update logger and validate flags before running
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		// Update logger with verbose flag
 		if err := logging.InitLogger(opts.verbose); err != nil {
 			return fmt.Errorf("failed to reinitialize logger: %w", err)
 		}
-		
+
 		// Check if destination is provided when needed
 		skipUpload, _ := cmd.Flags().GetBool("skip-upload")
 		if !skipUpload {

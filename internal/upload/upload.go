@@ -29,7 +29,7 @@ func UploadToRclone(source, destination string, verbose bool) error {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
 	defer logging.SyncLogger()
-	
+
 	// Get the sugar reference for this package
 	sugar = logging.GetSugar()
 
