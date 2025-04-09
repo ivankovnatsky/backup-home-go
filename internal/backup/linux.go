@@ -15,7 +15,7 @@ import (
 	"github.com/klauspost/pgzip"
 )
 
-func createLinuxArchive(source, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool) error {
+func createLinuxArchive(source, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool, skipOnError bool) error {
 	// Initialize logger (this is safe to call multiple times)
 	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
@@ -48,8 +48,6 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 	if !ignoreExcludes {
 		excludePatterns = platform.GetExcludePatterns()
 		sugar.Infof("Using exclude patterns: [%s]", strings.Join(excludePatterns, ", "))
-	} else {
-		sugar.Info("Ignoring exclude patterns - backing up everything")
 	}
 
 	err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
@@ -105,12 +103,20 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 		}
 
 		if err != nil {
-			return fmt.Errorf("failed to create tar header: %w", err)
+			if skipOnError {
+				sugar.Warnf("Skipping file due to header creation error: %s (%v)", path, err)
+				return nil
+			}
+			return fmt.Errorf("failed to create tar header for %s: %w", path, err)
 		}
 		header.Name = relPath
 
 		if err := tarWriter.WriteHeader(header); err != nil {
-			return fmt.Errorf("failed to write tar header: %w", err)
+			if skipOnError {
+				sugar.Warnf("Skipping file due to header write error: %s (%v)", path, err)
+				return nil
+			}
+			return fmt.Errorf("failed to write tar header for %s: %w", path, err)
 		}
 
 		if info.Mode().IsRegular() {
@@ -125,8 +131,12 @@ func createLinuxArchive(source, backupPath string, compressionLevel int, verbose
 			_, err = io.CopyBuffer(tarWriter, file, buf)
 			bufferPool.Put(buf)
 			if err != nil {
+				if skipOnError {
+					sugar.Warnf("Skipping file due to content write error: %s (%v)", path, err)
+					return nil
+				}
 				sugar.Errorf("Failed to write file %s: %v", path, err)
-				return fmt.Errorf("failed to write file: %w", err)
+				return fmt.Errorf("failed to write file content for %s: %w", path, err)
 			}
 		}
 

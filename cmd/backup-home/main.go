@@ -89,7 +89,7 @@ func main() {
 			}
 
 			// Create backup
-			backupPath, err := backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose, opts.ignoreExcludes)
+			backupPath, err := backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose, opts.ignoreExcludes, opts.skipOnError)
 			if err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}

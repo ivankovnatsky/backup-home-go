@@ -24,7 +24,7 @@ var bufferPool = sync.Pool{
 	},
 }
 
-func createWindowsArchive(source, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool) error {
+func createWindowsArchive(source, backupPath string, compressionLevel int, verbose bool, ignoreExcludes bool, skipOnError bool) error {
 	// Initialize logger (this is safe to call multiple times)
 	if err := logging.InitLogger(verbose); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
@@ -73,10 +73,10 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 			for file := range filesChan {
 				// Lock the zip writer during file addition
 				zipMutex.Lock()
-				err := addFileToZip(zipWriter, file.path, file.info, file.relPath)
+				err := addFileToZip(zipWriter, file.path, file.info, file.relPath, skipOnError)
 				zipMutex.Unlock()
 
-				if err != nil {
+				if err != nil && !skipOnError {
 					errorsChan <- err
 				}
 			}
@@ -99,8 +99,6 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 			displayPatterns = append(displayPatterns, pattern)
 		}
 		sugar.Infof("Using exclude patterns: [%s]", strings.Join(displayPatterns, ", "))
-	} else {
-		sugar.Info("Ignoring exclude patterns - backing up everything")
 	}
 
 	go func() {
@@ -155,7 +153,8 @@ func createWindowsArchive(source, backupPath string, compressionLevel int, verbo
 
 	// Check for any errors
 	for err := range errorsChan {
-		if err != nil {
+		if err != nil && !skipOnError {
+			// Error already includes file path from addFileToZip
 			return fmt.Errorf("error during archiving: %w", err)
 		}
 	}
@@ -170,18 +169,26 @@ type fileToProcess struct {
 }
 
 // Helper function for adding files to zip
-func addFileToZip(zipWriter *zip.Writer, path string, info os.FileInfo, relPath string) error {
+func addFileToZip(zipWriter *zip.Writer, path string, info os.FileInfo, relPath string, skipOnError bool) error {
 	// Create zip header
 	header, err := zip.FileInfoHeader(info)
 	if err != nil {
-		return fmt.Errorf("failed to create zip header: %w", err)
+		if skipOnError {
+			sugar.Warnf("Skipping file due to header creation error: %s (%v)", path, err)
+			return nil
+		}
+		return fmt.Errorf("failed to create zip header for %s: %w", path, err)
 	}
 	header.Name = relPath
 	header.Method = zip.Deflate
 
 	writer, err := zipWriter.CreateHeader(header)
 	if err != nil {
-		return fmt.Errorf("failed to create zip entry: %w", err)
+		if skipOnError {
+			sugar.Warnf("Skipping file due to header write error: %s (%v)", path, err)
+			return nil
+		}
+		return fmt.Errorf("failed to create zip entry for %s: %w", path, err)
 	}
 
 	if info.Mode().IsRegular() {
@@ -198,9 +205,12 @@ func addFileToZip(zipWriter *zip.Writer, path string, info os.FileInfo, relPath 
 
 		_, err = io.CopyBuffer(writer, file, buf)
 		if err != nil {
-			// Log copy errors but don't fail the backup
+			// Log copy errors but include file path in error message
 			sugar.Warnf("Failed to copy file %s: %v", path, err)
-			return nil
+			if skipOnError {
+				return nil
+			}
+			return fmt.Errorf("failed to write file content for %s: %w", path, err)
 		}
 	}
 
