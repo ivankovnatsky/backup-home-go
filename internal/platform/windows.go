@@ -23,6 +23,7 @@ func getWindowsExcludes() []string {
 		"AppData\\Local\\History",
 		"AppData\\Local\\ElevatedDiagnostics",
 		"AppData\\Local\\Temporary Internet Files",
+		"AppData\\Local\\NVIDIA",
 		"Application Data",
 		"Cookies",
 		"Local Settings",
@@ -36,7 +37,13 @@ func getWindowsExcludes() []string {
 		"Documents\\My Music",
 		"Documents\\My Pictures",
 		"Documents\\My Videos",
+		"AppData\\Local\\Comms",
+		"AppData\\Local\\NVIDIA Corporation",
+		".codeium",
+		".cursor",
+		".ollama",
 		"AppData\\Local\\go-build",
-		".cursor\\extensions",
+		"Downloads",
+		"go",
 	}
 }

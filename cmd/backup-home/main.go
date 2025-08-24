@@ -33,6 +33,15 @@ type options struct {
 	skipUpload    bool
 	keepBackup    bool
 	ignoreExcludes bool
+	backupOnly    bool
+	// SSH upload options
+	useSSH       bool
+	sshHost      string
+	sshPort      string
+	sshUser      string
+	sshPassword  string
+	sshKeyFile   string
+	sshRemotePath string
 }
 
 func main() {
@@ -66,8 +75,12 @@ func main() {
 				fmt.Println("\nPreview summary:")
 				fmt.Println("---------------")
 				fmt.Printf("Source: %s\n", opts.source)
-				if !opts.skipUpload {
-					fmt.Printf("Destination: %s\n", opts.destination)
+				if !opts.skipUpload && !opts.backupOnly {
+					if opts.useSSH {
+						fmt.Printf("SSH Destination: %s@%s:%s%s\n", opts.sshUser, opts.sshHost, opts.sshRemotePath, "[hostname]/Users/[date]/")
+					} else {
+						fmt.Printf("Destination: %s\n", opts.destination)
+					}
 				}
 				fmt.Printf("Compression level: %d\n", opts.compression)
 				if opts.ignoreExcludes {
@@ -75,8 +88,14 @@ func main() {
 				}
 				fmt.Println("\nThis would:")
 				fmt.Printf("1. Create backup archive of: %s\n", opts.source)
-				if !opts.skipUpload {
-					fmt.Printf("2. Upload to: %s\n", opts.destination)
+				if opts.backupOnly {
+					fmt.Println("2. Keep backup file locally (backup-only mode)")
+				} else if !opts.skipUpload {
+					if opts.useSSH {
+						fmt.Printf("2. Upload via SSH to: %s@%s\n", opts.sshUser, opts.sshHost)
+					} else {
+						fmt.Printf("2. Upload to: %s\n", opts.destination)
+					}
 					if !opts.keepBackup {
 						fmt.Println("3. Clean up temporary files")
 					} else {
@@ -94,10 +113,28 @@ func main() {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
 
-			// Upload backup if not skipped
-			if !opts.skipUpload {
-				if err := upload.UploadToRclone(backupPath, opts.destination, opts.verbose); err != nil {
-					return fmt.Errorf("failed to upload backup: %w", err)
+			// Handle upload based on mode
+			if opts.backupOnly {
+				sugar.Infof("Backup-only mode. Backup file is available at: %s", backupPath)
+			} else if !opts.skipUpload {
+				if opts.useSSH {
+					// Upload via SSH
+					sshConfig := upload.SSHConfig{
+						Host:       opts.sshHost,
+						Port:       opts.sshPort,
+						User:       opts.sshUser,
+						Password:   opts.sshPassword,
+						KeyFile:    opts.sshKeyFile,
+						RemotePath: opts.sshRemotePath,
+					}
+					if err := upload.UploadToSSH(backupPath, sshConfig, opts.verbose); err != nil {
+						return fmt.Errorf("failed to upload backup via SSH: %w", err)
+					}
+				} else {
+					// Upload via rclone
+					if err := upload.UploadToRclone(backupPath, opts.destination, opts.verbose); err != nil {
+						return fmt.Errorf("failed to upload backup: %w", err)
+					}
 				}
 
 				// Cleanup only if uploaded and not keeping backup
@@ -134,6 +171,15 @@ func main() {
 	rootCmd.Flags().BoolVar(&opts.skipUpload, "skip-upload", false, "Skip uploading the backup archive")
 	rootCmd.Flags().BoolVar(&opts.keepBackup, "keep-backup", false, "Keep the backup file after uploading")
 	rootCmd.Flags().BoolVar(&opts.ignoreExcludes, "ignore-excludes", false, "Ignore exclude patterns and backup everything")
+	rootCmd.Flags().BoolVar(&opts.backupOnly, "backup-only", false, "Create backup archive only, skip all uploads")
+	// SSH upload flags
+	rootCmd.Flags().BoolVar(&opts.useSSH, "ssh", false, "Use SSH/SCP upload instead of rclone")
+	rootCmd.Flags().StringVar(&opts.sshHost, "ssh-host", upload.DefaultTargetMachine, "SSH host to upload to")
+	rootCmd.Flags().StringVar(&opts.sshPort, "ssh-port", upload.DefaultSSHPort, "SSH port")
+	rootCmd.Flags().StringVar(&opts.sshUser, "ssh-user", upload.DefaultSSHUser, "SSH username")
+	rootCmd.Flags().StringVar(&opts.sshPassword, "ssh-password", "", "SSH password (not recommended, use key file instead)")
+	rootCmd.Flags().StringVar(&opts.sshKeyFile, "ssh-key", "", "SSH private key file path (defaults to SSH agent)")
+	rootCmd.Flags().StringVar(&opts.sshRemotePath, "ssh-remote-path", upload.DefaultBackupPath, "Remote base path for backups")
 
 	// Update logger and validate flags before running
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
@@ -144,16 +190,24 @@ func main() {
 
 		// Check if destination is provided when needed
 		skipUpload, _ := cmd.Flags().GetBool("skip-upload")
-		if !skipUpload {
-			if opts.destination == "" {
-				return fmt.Errorf("required flag \"destination\" not set")
+		if !skipUpload && !opts.backupOnly {
+			if opts.useSSH {
+				// Validate SSH configuration
+				if opts.sshHost == "" {
+					return fmt.Errorf("SSH host is required when using SSH upload")
+				}
+			} else {
+				// Validate rclone destination
+				if opts.destination == "" {
+					return fmt.Errorf("required flag \"destination\" not set (use --ssh for SSH upload or --backup-only for local backup)")
+				}
 			}
 		}
 		return nil
 	}
 
 	if err := rootCmd.Execute(); err != nil {
-		// Get the latest sugar in case it was updated by PreRunE
-		logging.GetSugar().Fatal(err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
