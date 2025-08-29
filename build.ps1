@@ -44,7 +44,7 @@ function Run {
     Write-Host "Running..."
     & ".\$DistDir\$BinaryName.exe" `
         --source $env:USERPROFILE `
-        --destination "${RcloneRemote}:${RclonePath}"
+        --rclone "${RcloneRemote}:${RclonePath}"
 }
 
 function RunDebug {
@@ -52,7 +52,7 @@ function RunDebug {
     Write-Host "Running with debug output..."
     & ".\$DistDir\$BinaryName.exe" `
         --source $env:USERPROFILE `
-        --destination "${RcloneRemote}:${RclonePath}" `
+        --rclone "${RcloneRemote}:${RclonePath}" `
         --verbose
 }
 
@@ -61,7 +61,7 @@ function DryRun {
     Write-Host "Dry run..."
     & ".\$DistDir\$BinaryName.exe" `
         --source $env:USERPROFILE `
-        --destination "${RcloneRemote}:${RclonePath}" `
+        --rclone "${RcloneRemote}:${RclonePath}" `
         --preview
 }
 

@@ -97,7 +97,7 @@ check: fmt-check lint test
 dry-run: build
 	./dist/$(BINARY_NAME) \
 		--source $(HOME) \
-		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)" \
+		--rclone "$(RCLONE_REMOTE):$(RCLONE_PATH)" \
 		--preview \
 		--compression 6
 
@@ -105,13 +105,13 @@ dry-run: build
 run: build
 	./dist/$(BINARY_NAME) \
 		--source $(HOME) \
-		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)"
+		--rclone "$(RCLONE_REMOTE):$(RCLONE_PATH)"
 
 # Run with verbose output
 run-verbose: build
 	./dist/$(BINARY_NAME) \
 		--source $(HOME) \
-		--destination "$(RCLONE_REMOTE):$(RCLONE_PATH)" \
+		--rclone "$(RCLONE_REMOTE):$(RCLONE_PATH)" \
 		--compression 6 \
 		-v
 

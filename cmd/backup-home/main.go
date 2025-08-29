@@ -24,7 +24,7 @@ var (
 
 type options struct {
 	source        string
-	destination   string
+	rclone        string
 	backupPath    string
 	compression   int
 	verbose       bool
@@ -79,7 +79,7 @@ func main() {
 					if opts.useSSH {
 						fmt.Printf("SSH Destination: %s@%s:%s%s\n", opts.sshUser, opts.sshHost, opts.sshRemotePath, "[hostname]/Users/[date]/")
 					} else {
-						fmt.Printf("Destination: %s\n", opts.destination)
+						fmt.Printf("Rclone destination: %s\n", opts.rclone)
 					}
 				}
 				fmt.Printf("Compression level: %d\n", opts.compression)
@@ -94,7 +94,7 @@ func main() {
 					if opts.useSSH {
 						fmt.Printf("2. Upload via SSH to: %s@%s\n", opts.sshUser, opts.sshHost)
 					} else {
-						fmt.Printf("2. Upload to: %s\n", opts.destination)
+						fmt.Printf("2. Upload to: %s\n", opts.rclone)
 					}
 					if !opts.keepBackup {
 						fmt.Println("3. Clean up temporary files")
@@ -132,7 +132,7 @@ func main() {
 					uploadErr = upload.UploadToSSH(backupPath, sshConfig, opts.verbose)
 				} else {
 					// Upload via rclone
-					uploadErr = upload.UploadToRclone(backupPath, opts.destination, opts.verbose)
+					uploadErr = upload.UploadToRclone(backupPath, opts.rclone, opts.verbose)
 				}
 
 				if uploadErr != nil {
@@ -166,7 +166,7 @@ func main() {
 	}
 
 	rootCmd.Flags().StringVarP(&opts.source, "source", "s", homeDir, "Source directory to backup (defaults to home directory)")
-	rootCmd.Flags().StringVarP(&opts.destination, "destination", "d", "", "Destination path for rclone (e.g., \"drive:\", \"gdrive:backup/home\")")
+	rootCmd.Flags().StringVarP(&opts.rclone, "rclone", "r", "", "Rclone destination path (e.g., \"drive:\", \"gdrive:backup/home\")")
 	rootCmd.Flags().StringVar(&opts.backupPath, "backup-path", "", "Custom path for temporary backup file (defaults to system temp directory)")
 	rootCmd.Flags().IntVarP(&opts.compression, "compression", "c", 6, "Compression level (0-9, default: 6)")
 	rootCmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose output")
@@ -192,19 +192,23 @@ func main() {
 			return fmt.Errorf("failed to reinitialize logger: %w", err)
 		}
 
-		// Check if destination is provided when needed
+		// Set default upload mode to SSH if no mode is specified
 		skipUpload, _ := cmd.Flags().GetBool("skip-upload")
+		if !skipUpload && !opts.backupOnly && opts.rclone == "" && !opts.useSSH {
+			opts.useSSH = true
+		}
+		
+		// Validate configuration based on selected mode
 		if !skipUpload && !opts.backupOnly {
 			if opts.useSSH {
 				// Validate SSH configuration
 				if opts.sshHost == "" {
 					return fmt.Errorf("SSH host is required when using SSH upload")
 				}
+			} else if opts.rclone != "" {
+				// rclone mode - no additional validation needed
 			} else {
-				// Validate rclone destination
-				if opts.destination == "" {
-					return fmt.Errorf("required flag \"destination\" not set (use --ssh for SSH upload or --backup-only for local backup)")
-				}
+				return fmt.Errorf("must specify upload mode: --rclone (rclone upload), --ssh (SSH upload), or --backup-only (local only)")
 			}
 		}
 		return nil
