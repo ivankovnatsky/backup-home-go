@@ -9,6 +9,7 @@ import (
 
 	"backup-home/internal/logging"
 	"github.com/melbahja/goph"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -113,8 +114,13 @@ func UploadToSSHGoph(localPath string, config SSHConfig, verbose bool) error {
 	}
 	defer localFile.Close()
 	
-	// Get SFTP client from goph
-	sftpClient, err := client.NewSftp()
+	// Get SFTP client from goph with balanced performance optimizations
+	sftpClient, err := client.NewSftp(
+		sftp.UseConcurrentReads(true),
+		sftp.UseConcurrentWrites(true),
+		sftp.MaxConcurrentRequestsPerFile(32), // Conservative concurrent requests
+		sftp.MaxPacketUnchecked(256*1024),     // 256KB packets (stable size)
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create SFTP client: %w", err)
 	}

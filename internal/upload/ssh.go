@@ -37,7 +37,7 @@ type SSHConfig struct {
 
 // UploadToSSH uploads a backup file to a remote machine via SSH/SFTP
 func UploadToSSH(localPath string, config SSHConfig, verbose bool) error {
-	return UploadToSSHGoph(localPath, config, verbose)
+	return UploadToSSHBinary(localPath, config, verbose)
 }
 
 // UploadToSSHOriginal is the original SSH implementation (kept for reference)
@@ -89,8 +89,13 @@ func UploadToSSHOriginal(localPath string, config SSHConfig, verbose bool) error
 	}
 	defer sshClient.Close()
 
-	// Create SFTP client
-	sftpClient, err := sftp.NewClient(sshClient)
+	// Create SFTP client with balanced performance optimizations
+	sftpClient, err := sftp.NewClient(sshClient,
+		sftp.UseConcurrentReads(true),
+		sftp.UseConcurrentWrites(true),
+		sftp.MaxConcurrentRequestsPerFile(32), // Conservative concurrent requests
+		sftp.MaxPacketUnchecked(256*1024),     // 256KB packets (stable size)
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create SFTP client: %w", err)
 	}
