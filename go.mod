@@ -5,10 +5,13 @@ go 1.23.3
 require (
 	github.com/klauspost/compress v1.17.9
 	github.com/klauspost/pgzip v1.2.6
+	github.com/melbahja/goph v1.4.0
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/pkg/sftp v1.13.6
 	github.com/rclone/rclone v1.68.2
 	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
+	golang.org/x/crypto v0.25.0
 )
 
 require (
@@ -127,7 +130,6 @@ require (
 	github.com/pengsrc/go-shared v0.2.1-0.20190131101655-1999055a4a14 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.6 // indirect
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
@@ -166,7 +168,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
