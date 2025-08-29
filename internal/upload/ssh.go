@@ -12,6 +12,7 @@ import (
 	"backup-home/internal/logging"
 
 	"github.com/pkg/sftp"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -63,12 +64,24 @@ func UploadToSSH(localPath string, config SSHConfig, verbose bool) error {
 	} else if config.Password != "" {
 		sshConfig.Auth = []ssh.AuthMethod{ssh.Password(config.Password)}
 	} else {
-		// Try SSH agent if available
+		// Try SSH agent first, then default key locations
+		var authMethods []ssh.AuthMethod
+		
+		// Try SSH agent
 		if agentAuth, err := sshAgentAuth(); err == nil {
-			sshConfig.Auth = []ssh.AuthMethod{agentAuth}
-		} else {
-			return fmt.Errorf("no authentication method available (provide --ssh-key or --ssh-password)")
+			authMethods = append(authMethods, agentAuth)
 		}
+		
+		// Try default key locations
+		if keyAuth, err := tryDefaultKeys(); err == nil {
+			authMethods = append(authMethods, keyAuth...)
+		}
+		
+		if len(authMethods) == 0 {
+			return fmt.Errorf("no authentication method available (provide --ssh-key or --ssh-password, or ensure SSH keys exist in default locations)")
+		}
+		
+		sshConfig.Auth = authMethods
 	}
 
 	// Connect to SSH server
@@ -121,8 +134,15 @@ func UploadToSSH(localPath string, config SSHConfig, verbose bool) error {
 	}
 	defer remoteFile.Close()
 
-	// Copy file content
-	bytesCopied, err := io.Copy(remoteFile, localFile)
+	// Copy file content with progress reporting
+	progressReader := &progressReader{
+		reader:    localFile,
+		total:     fileInfo.Size(),
+		startTime: startTime,
+		sugar:     sugar,
+	}
+	
+	bytesCopied, err := io.Copy(remoteFile, progressReader)
 	if err != nil {
 		return fmt.Errorf("failed to copy file: %w", err)
 	}
@@ -153,4 +173,84 @@ func sshAgentAuth() (ssh.AuthMethod, error) {
 
 	agentClient := agent.NewClient(conn)
 	return ssh.PublicKeysCallback(agentClient.Signers), nil
+}
+
+// progressReader wraps an io.Reader to provide upload progress reporting
+type progressReader struct {
+	reader      io.Reader
+	total       int64
+	transferred int64
+	startTime   time.Time
+	sugar       *zap.SugaredLogger
+	lastReport  time.Time
+}
+
+func (pr *progressReader) Read(p []byte) (int, error) {
+	n, err := pr.reader.Read(p)
+	pr.transferred += int64(n)
+	
+	// Report progress every 5 seconds or at completion
+	now := time.Now()
+	if now.Sub(pr.lastReport) >= 5*time.Second || pr.transferred == pr.total || err == io.EOF {
+		pr.lastReport = now
+		
+		elapsed := now.Sub(pr.startTime).Seconds()
+		if elapsed > 0 {
+			percentage := float64(pr.transferred) / float64(pr.total) * 100
+			transferredMB := float64(pr.transferred) / 1024 / 1024
+			totalMB := float64(pr.total) / 1024 / 1024
+			mbPerSec := transferredMB / elapsed
+			
+			if pr.transferred == pr.total || err == io.EOF {
+				pr.sugar.Infof("Upload completed: %.2f MB (%.2f MB/s)", totalMB, mbPerSec)
+			} else {
+				pr.sugar.Infof("Upload progress: %.1f%% (%.2f/%.2f MB, %.2f MB/s)", 
+					percentage, transferredMB, totalMB, mbPerSec)
+			}
+		}
+	}
+	
+	return n, err
+}
+
+// tryDefaultKeys attempts to load SSH keys from default locations
+func tryDefaultKeys() ([]ssh.AuthMethod, error) {
+	var authMethods []ssh.AuthMethod
+	
+	// Get user home directory
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get home directory: %w", err)
+	}
+	
+	// Common SSH key locations
+	keyPaths := []string{
+		filepath.Join(home, ".ssh", "id_rsa"),
+		filepath.Join(home, ".ssh", "id_ed25519"),
+		filepath.Join(home, ".ssh", "id_ecdsa"),
+	}
+	
+	for _, keyPath := range keyPaths {
+		if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+			continue
+		}
+		
+		key, err := os.ReadFile(keyPath)
+		if err != nil {
+			continue // Skip this key if we can't read it
+		}
+		
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			continue // Skip this key if we can't parse it
+		}
+		
+		authMethods = append(authMethods, ssh.PublicKeys(signer))
+	}
+	
+	if len(authMethods) == 0 {
+		return nil, fmt.Errorf("no valid SSH keys found in default locations")
+	}
+	
+	return authMethods, nil
 }

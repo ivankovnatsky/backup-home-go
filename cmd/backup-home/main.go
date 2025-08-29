@@ -117,6 +117,8 @@ func main() {
 			if opts.backupOnly {
 				sugar.Infof("Backup-only mode. Backup file is available at: %s", backupPath)
 			} else if !opts.skipUpload {
+				var uploadErr error
+				
 				if opts.useSSH {
 					// Upload via SSH
 					sshConfig := upload.SSHConfig{
@@ -127,25 +129,27 @@ func main() {
 						KeyFile:    opts.sshKeyFile,
 						RemotePath: opts.sshRemotePath,
 					}
-					if err := upload.UploadToSSH(backupPath, sshConfig, opts.verbose); err != nil {
-						return fmt.Errorf("failed to upload backup via SSH: %w", err)
-					}
+					uploadErr = upload.UploadToSSH(backupPath, sshConfig, opts.verbose)
 				} else {
 					// Upload via rclone
-					if err := upload.UploadToRclone(backupPath, opts.destination, opts.verbose); err != nil {
-						return fmt.Errorf("failed to upload backup: %w", err)
-					}
+					uploadErr = upload.UploadToRclone(backupPath, opts.destination, opts.verbose)
 				}
 
-				// Cleanup only if uploaded and not keeping backup
+				if uploadErr != nil {
+					sugar.Errorf("Upload failed: %v", uploadErr)
+					sugar.Infof("Backup file preserved at: %s", backupPath)
+					return fmt.Errorf("failed to upload backup: %w", uploadErr)
+				}
+
+				// Cleanup only after successful upload and if not keeping backup
 				if !opts.keepBackup {
 					if err := os.Remove(backupPath); err != nil {
-						sugar.Warnf("Failed to cleanup backup file: %v", err)
+						sugar.Warnf("Failed to cleanup backup file after successful upload: %v", err)
 					} else {
-						sugar.Debugf("Removed backup file: %s", backupPath)
+						sugar.Infof("Successfully uploaded and cleaned up backup file")
 					}
 				} else {
-					sugar.Infof("Keeping backup file at: %s", backupPath)
+					sugar.Infof("Upload completed successfully. Backup file preserved at: %s", backupPath)
 				}
 			} else {
 				sugar.Infof("Upload skipped. Backup file is available at: %s", backupPath)

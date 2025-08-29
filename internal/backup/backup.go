@@ -44,6 +44,13 @@ func CreateBackup(source string, backupPath string, compressionLevel int, verbos
 		backupPath = filepath.Join(tempDir, fmt.Sprintf("%s.%s", username, getArchiveExtension()))
 	}
 
+	// Check if backup file already exists
+	if _, err := os.Stat(backupPath); err == nil {
+		sugar.Infof("Backup file already exists: %s", backupPath)
+		sugar.Infof("Skipping backup creation and using existing file")
+		return backupPath, nil
+	}
+
 	sugar.Infof("Creating backup of: %s", source)
 	sugar.Infof("Backup file: %s", backupPath)
 	sugar.Infof("Using compression level: %d", compressionLevel)
