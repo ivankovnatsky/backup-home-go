@@ -34,6 +34,7 @@ type options struct {
 	keepBackup    bool
 	ignoreExcludes bool
 	backupOnly    bool
+	skipBackup    bool
 	// SSH upload options
 	useSSH       bool
 	sshHost      string
@@ -107,8 +108,21 @@ func main() {
 				return nil
 			}
 
-			// Create backup
-			backupPath, err := backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose, opts.ignoreExcludes, opts.skipOnError)
+			// Create or use existing backup
+			var backupPath string
+			var err error
+			if opts.skipBackup {
+				if opts.backupPath == "" {
+					return fmt.Errorf("--backup-path is required when using --skip-backup")
+				}
+				if _, err := os.Stat(opts.backupPath); os.IsNotExist(err) {
+					return fmt.Errorf("backup file not found: %s", opts.backupPath)
+				}
+				backupPath = opts.backupPath
+				sugar.Infof("Using existing backup file: %s", backupPath)
+			} else {
+				backupPath, err = backup.CreateBackup(opts.source, opts.backupPath, opts.compression, opts.verbose, opts.ignoreExcludes, opts.skipOnError)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
@@ -176,6 +190,7 @@ func main() {
 	rootCmd.Flags().BoolVar(&opts.keepBackup, "keep-backup", false, "Keep the backup file after uploading")
 	rootCmd.Flags().BoolVar(&opts.ignoreExcludes, "ignore-excludes", false, "Ignore exclude patterns and backup everything")
 	rootCmd.Flags().BoolVar(&opts.backupOnly, "backup-only", false, "Create backup archive only, skip all uploads")
+	rootCmd.Flags().BoolVar(&opts.skipBackup, "skip-backup", false, "Skip backup creation and upload existing backup file (requires --backup-path)")
 	// SSH upload flags
 	rootCmd.Flags().BoolVar(&opts.useSSH, "ssh", false, "Use SSH/SCP upload instead of rclone")
 	rootCmd.Flags().StringVar(&opts.sshHost, "ssh-host", upload.DefaultTargetMachine, "SSH host to upload to")
