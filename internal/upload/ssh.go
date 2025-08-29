@@ -37,6 +37,11 @@ type SSHConfig struct {
 
 // UploadToSSH uploads a backup file to a remote machine via SSH/SFTP
 func UploadToSSH(localPath string, config SSHConfig, verbose bool) error {
+	return UploadToSSHGoph(localPath, config, verbose)
+}
+
+// UploadToSSHOriginal is the original SSH implementation (kept for reference)
+func UploadToSSHOriginal(localPath string, config SSHConfig, verbose bool) error {
 	// Get the sugar reference for this package
 	sugar := logging.GetSugar()
 
@@ -64,24 +69,16 @@ func UploadToSSH(localPath string, config SSHConfig, verbose bool) error {
 	} else if config.Password != "" {
 		sshConfig.Auth = []ssh.AuthMethod{ssh.Password(config.Password)}
 	} else {
-		// Try SSH agent first, then default key locations
-		var authMethods []ssh.AuthMethod
+		// Skip SSH agent (it's not working properly with Go SSH library)
+		// Go directly to trying default key locations
+		sugar.Debugf("Checking for SSH keys in default locations")
 		
-		// Try SSH agent
-		if agentAuth, err := sshAgentAuth(); err == nil {
-			authMethods = append(authMethods, agentAuth)
+		keyAuth, err := tryDefaultKeys()
+		if err != nil {
+			return fmt.Errorf("no SSH keys found in default locations")
 		}
 		
-		// Try default key locations
-		if keyAuth, err := tryDefaultKeys(); err == nil {
-			authMethods = append(authMethods, keyAuth...)
-		}
-		
-		if len(authMethods) == 0 {
-			return fmt.Errorf("no authentication method available (provide --ssh-key or --ssh-password, or ensure SSH keys exist in default locations)")
-		}
-		
-		sshConfig.Auth = authMethods
+		sshConfig.Auth = keyAuth
 	}
 
 	// Connect to SSH server
