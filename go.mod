@@ -1,8 +1,11 @@
 module backup-home
 
-go 1.23.3
+go 1.24
+
+toolchain go1.24.6
 
 require (
+	github.com/bramvdbogaerde/go-scp v1.4.0
 	github.com/klauspost/compress v1.17.9
 	github.com/klauspost/pgzip v1.2.6
 	github.com/melbahja/goph v1.4.0
@@ -11,7 +14,7 @@ require (
 	github.com/rclone/rclone v1.68.2
 	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.25.0
+	golang.org/x/crypto v0.37.0
 )
 
 require (
@@ -25,6 +28,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azfile v1.2.2 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/Files-com/files-sdk-go/v3 v3.2.34 // indirect
 	github.com/Max-Sum/base32768 v0.0.0-20230304063302-18e6ce5945fd // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
@@ -69,6 +73,7 @@ require (
 	github.com/cloudsoda/go-smb2 v0.0.0-20231124195312-f3ec8ae2c891 // indirect
 	github.com/colinmarc/hdfs/v2 v2.4.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cronokirby/saferith v0.33.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -92,7 +97,9 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/google/renameio/v2 v2.0.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.5 // indirect
@@ -118,10 +125,12 @@ require (
 	github.com/koofr/go-koofrclient v0.0.0-20221207135200-cbd7fc9ad6a6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/landlock-lsm/go-landlock v0.0.0-20250303204525-1544bccde3a3 // indirect
 	github.com/lpar/date v1.0.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mmcloughlin/md4 v0.1.2 // indirect
 	github.com/ncw/swift/v2 v2.0.3 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oracle/oci-go-sdk/v65 v65.69.2 // indirect
@@ -172,10 +181,10 @@ require (
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/term v0.22.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sync v0.13.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/term v0.31.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/api v0.188.0 // indirect
@@ -185,6 +194,7 @@ require (
 	gopkg.in/validator.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	kernel.org/pub/linux/libs/security/libcap/psx v1.2.70 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect
 	storj.io/common v0.0.0-20240812101423-26b53789c348 // indirect
 	storj.io/drpc v0.0.35-0.20240709171858-0075ac871661 // indirect
